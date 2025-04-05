@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Flask API</title>
+</head>
+<body>
+    <h2>Test API</h2>
+    <button onclick="testAPI()">Send Request</button>
+    <p id="response"></p>
+
+    <script>
+        function testAPI() {
+            fetch("http://127.0.0.1:5000/bins")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("response").innerText = JSON.stringify(data, null, 2);
+            });
+        }
+    </script>
+</body>
+</html>

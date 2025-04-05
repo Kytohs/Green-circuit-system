@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collector Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+    <h1 class="text-center">Collector Dashboard</h1>
+    <h2>Welcome, Collector!</h2>
+    <canvas id="binChart" width="400" height="200"></canvas>
+
+<script>
+    fetch('/bins')  // Fetch bin data from the API
+        .then(response => response.json())
+        .then(data => {
+            let fullBins = data.filter(bin => bin.status === "Full").length;
+            let availableBins = data.length - fullBins;
+
+            var ctx = document.getElementById('binChart').getContext('2d');
+            var binChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Full Bins', 'Available Bins'],
+                    datasets: [{
+                        label: 'Bin Status',
+                        data: [fullBins, availableBins],
+                        backgroundColor: ['red', 'green']
+                    }]
+                }
+            });
+        });
+</script>
+
+    <a href="{{ url_for('logout') }}">Logout</a>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Bin ID</th>
+                <th>Location</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bin in bins %}
+            <tr>
+                <td>{{ bin.bin_id }}</td>
+                <td>{{ bin.location }}</td>
+                <td>{{ bin.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+<div class="container mt-4">
+    <h2 class="text-center">Collector Dashboard</h2>
+
+    <!-- Bin Status Chart -->
+    <div class="row">
+        <div class="col-md-6">
+            <canvas id="binChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Bin Table -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Bin ID</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bin in bins %}
+                <tr>
+                    <td>{{ bin.bin_id }}</td>
+                    <td>{{ bin.location }}</td>
+                    <td>{{ bin.status }}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="markCollected('{{ bin.bin_id }}')">Mark Collected</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

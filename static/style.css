@@ -1,0 +1,161 @@
+/* General Page Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    background-color: #f8f9fa;
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+/* Header Section */
+header {
+    background: #2d89ef;
+    color: white;
+    padding: 15px 0;
+    font-size: 22px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#dark-mode-toggle {
+    background: #fff;
+    color: #2d89ef;
+    border: none;
+    padding: 8px 12px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 15px;
+    border-radius: 5px;
+    transition: 0.3s ease-in-out;
+}
+
+/* ✅ Dark Mode Fix: Ensuring Dark Button Visibility */
+.dark-mode #dark-mode-toggle {
+    background: #444;
+    color: white;
+}
+
+/* Map Styling */
+#map {
+    height: 500px; 
+    width: 95%;
+    margin: 20px auto;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Info Container */
+.info-container {
+    background: white;
+    padding: 15px;
+    width: 90%;
+    max-width: 800px;
+    margin: 20px auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+h2 {
+    color: #2d89ef;
+}
+
+#bin-list {
+    list-style: none;
+    padding: 0;
+}
+
+#bin-list li {
+    padding: 10px;
+    font-size: 18px;
+    border-bottom: 1px solid #ddd;
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+/* ✅ Dark Mode Fixes */
+.dark-mode {
+    background-color: #121212;
+    color: white;
+}
+
+.dark-mode header {
+    background: #1e1e1e;
+}
+
+.dark-mode .info-container {
+    background: #222;
+    color: white;
+}
+
+.dark-mode #bin-list li {
+    background: #333;
+    color: white;
+    border-bottom: 1px solid #444;
+}
+
+/* Refresh Button */
+#refresh-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s ease-in-out;
+}
+
+#refresh-btn:hover {
+    background-color: #0056b3;
+}
+
+#refresh-btn.loading {
+    background-color: #ffc107;
+    cursor: wait;
+}
+
+/* ✅ Dark Mode Fix for Buttons */
+.dark-mode #refresh-btn {
+    background-color: #444;
+}
+
+.dark-mode #refresh-btn:hover {
+    background-color: #666;
+}
+
+/* ✅ Mobile Responsive Fixes */
+@media (max-width: 768px) {
+    header {
+        font-size: 18px;
+        padding: 10px;
+    }
+
+    #map {
+        height: 400px;
+        width: 100%;
+    }
+
+    .info-container {
+        width: 95%;
+        padding: 12px;
+    }
+
+    #refresh-btn {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+
+    #dark-mode-toggle {
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+}
+#map {
+    height: 500px;
+    width: 100%;
+    border: 2px solid #ccc;
+}

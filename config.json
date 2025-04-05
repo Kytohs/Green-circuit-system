@@ -1,0 +1,7 @@
+{
+    "twilio_sid": "your_twilio_sid",
+    "twilio_token": "your_twilio_auth_token",
+    "twilio_phone": "+1234567890",
+    "collector_phone": "+9876543210"
+  }
+  

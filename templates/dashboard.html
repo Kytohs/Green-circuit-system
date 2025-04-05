@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bin Status Dashboard</title>
+
+    <!-- ✅ Load Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- ✅ Load Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- ✅ Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <a href="/download_report?format=csv">Download CSV</a>
+<a href="/download_report?format=pdf">Download PDF</a>
+
+</head>
+<body>
+    <h1>Bin Status Dashboard</h1>
+
+    <button onclick="fetchInitialBinData()">Refresh Data</button>
+
+    <!-- ✅ Map Container -->
+    <div id="map" style="height: 400px;"></div>
+
+    <!-- ✅ Chart Container -->
+    <canvas id="binChart"></canvas>
+
+    <!-- ✅ Bin Data List -->
+    <div id="bin-list">
+        <p id="loading-text">Loading bin data...</p>
+    </div>
+
+    <!-- ✅ Load Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

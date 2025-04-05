@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bin History Dashboard</title>
+
+    <!-- ✅ Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ✅ Socket.IO for real-time updates -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        canvas {
+            max-width: 700px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Bin Fill History</h1>
+
+    <!-- ✅ Chart Canvas -->
+    <canvas id="binHistoryChart"></canvas>
+
+    <script>
+        const socket = io("http://127.0.0.1:5050");  // Connect to Flask WebSocket
+
+        // ✅ Initialize Chart.js
+        const ctx = document.getElementById('binHistoryChart').getContext('2d');
+        let binChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Time labels
+                datasets: [{
+                    label: 'Bin Weight Over Time (kg)',
+                    data: [],
+                    borderColor: 'blue',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: "Time" } },
+                    y: { title: { display: true, text: "Weight (kg)" }, min: 0, max: 100 }
+                }
+            }
+        });
+
+        // ✅ Fetch bin history from Flask API
+        async function fetchBinHistory(bin_id) {
+            const response = await fetch(`/get-bin-history/${bin_id}`);
+            const data = await response.json();
+            if (data.history.length > 0) {
+                binChart.data.labels = data.history.map(entry => entry.timestamp);
+                binChart.data.datasets[0].data = data.history.map(entry => entry.weight);
+                binChart.update();
+            }
+        }
+
+        // ✅ Listen for real-time updates
+        socket.on("update_bin", (data) => {
+            fetchBinHistory(data.bin_id);
+        });
+
+        // ✅ Auto-load bin history for a default bin
+        fetchBinHistory("B002");  // Change "B002" to a bin ID in your database
+    </script>
+</body>
+</html>
