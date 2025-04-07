@@ -2,105 +2,103 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_socketio import SocketIO
 from twilio.rest import Client
 import eventlet
-import geopy.distance
 import traceback
 import os
-import sqlite3
-from dotenv import load_dotenv  # ✅ Load environment variables
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
 
-# ✅ Load Twilio Credentials Securely
+# ✅ Load environment variables
 load_dotenv()
 
+# ✅ Twilio Credentials
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
-
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-# ✅ Initialize Flask App
+# ✅ Flask App Setup
 app = Flask(__name__, static_folder="static")
 app.secret_key = "supersecretkey"
 
-# ✅ Initialize WebSockets
+# ✅ PostgreSQL Config
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# ✅ WebSockets
 socketio = SocketIO(app, async_mode="eventlet")
 
-# ✅ Database Connection
-DB_PATH = os.path.abspath("database.db")
-print(f"📌 Database Path: {DB_PATH}")
+# ✅ Bin Model
+class Bin(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    bin_id = db.Column(db.String, unique=True, nullable=False)
+    weight = db.Column(db.String)
+    location = db.Column(db.String)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    status = db.Column(db.String)
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# ✅ Serve Dashboard
 @app.route("/")
 def home():
-    return render_template("index.html")  # Ensure "index.html" exists
+    return render_template("index.html")
 
-@app.route('/login')
+@app.route("/login")
 def login():
-    return render_template('login.html')  # Ensure 'login.html' exists in 'templates/' folder
+    return render_template("login.html")
 
-# ✅ Serve Static Files
-@app.route('/static/<path:filename>')
+@app.route("/static/<path:filename>")
 def static_files(filename):
     return send_from_directory(app.static_folder, filename)
 
-# ✅ API: Get All Bins
 @app.route("/get-bins", methods=["GET"])
 def get_bins():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM bins")
-    bins = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-    return jsonify({"bins": bins})
+    bins = Bin.query.all()
+    bin_data = [
+        {
+            "id": b.id,
+            "bin_id": b.bin_id,
+            "weight": b.weight,
+            "location": b.location,
+            "latitude": b.latitude,
+            "longitude": b.longitude,
+            "status": b.status
+        } for b in bins
+    ]
+    return jsonify({"bins": bin_data})
 
-# ✅ API: Update Bin Status & Notify Collector
 @app.route("/update-bin", methods=["POST"])
 def update_bin():
     try:
         data = request.get_json()
-        bin_id = data["bin_id"]
-        weight = data["weight"]
-        location = data["location"]
-        lat = data["latitude"]
-        lng = data["longitude"]
+        bin_obj = Bin.query.filter_by(bin_id=data["bin_id"]).first()
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        if not bin_obj:
+            bin_obj = Bin(bin_id=data["bin_id"])
+            db.session.add(bin_obj)
 
-        cursor.execute(
-            """
-            INSERT INTO bins (bin_id, weight, location, latitude, longitude, status)
-            VALUES (?, ?, ?, ?, ?, 'Not Collected')
-            ON CONFLICT(bin_id) DO UPDATE SET
-                weight = excluded.weight,
-                location = excluded.location,
-                latitude = excluded.latitude,
-                longitude = excluded.longitude;
-            """,
-            (bin_id, weight, location, lat, lng),
-        )
+        bin_obj.weight = data["weight"]
+        bin_obj.location = data["location"]
+        bin_obj.latitude = data["latitude"]
+        bin_obj.longitude = data["longitude"]
+        bin_obj.status = "Not Collected"
+        db.session.commit()
 
-        conn.commit()
-        conn.close()
-
-        # ✅ Emit real-time update
         socketio.emit("update_bin", {
-            "bin_id": bin_id, "location": location, "weight": weight, "latitude": lat, "longitude": lng
+            "bin_id": bin_obj.bin_id,
+            "location": bin_obj.location,
+            "weight": bin_obj.weight,
+            "latitude": bin_obj.latitude,
+            "longitude": bin_obj.longitude
         })
 
-        # ✅ Optional WhatsApp Notification if weight > 40kg
         try:
-            numeric_weight = float(weight.replace("kg", "").strip())
+            numeric_weight = float(bin_obj.weight.replace("kg", "").strip())
             if numeric_weight > 40:
-                message_body = f"🚨 Bin {bin_id} at {location} is full! 📍 {lat}, {lng}"
+                message_body = f"🚨 Bin {bin_obj.bin_id} at {bin_obj.location} is full! 📍 {bin_obj.latitude}, {bin_obj.longitude}"
                 client.messages.create(
                     from_=TWILIO_WHATSAPP_NUMBER,
                     body=message_body,
-                    to="whatsapp:+254758293126"  # Replace with the actual recipient number
+                    to="whatsapp:+254758293126"
                 )
         except Exception as notify_error:
             print("⚠️ Failed to send WhatsApp message:", notify_error)
@@ -111,10 +109,6 @@ def update_bin():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
-
-
-# ✅ API: @app.route("/send-whatsapp", methods=["POST"])
 @app.route("/send-whatsapp", methods=["POST"])
 def send_whatsapp():
     try:
@@ -137,7 +131,10 @@ def send_whatsapp():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# ✅ Start Flask Server
+# ✅ Auto-create tables
+with app.app_context():
+    db.create_all()
+
+# ✅ Run the app
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
