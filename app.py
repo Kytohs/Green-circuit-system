@@ -66,8 +66,8 @@ class User(db.Model):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session["user_id"] = user.id
@@ -76,14 +76,13 @@ def login():
         else:
             flash("Invalid username or password", "danger")
     return render_template("login.html")
-print(request.form)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
         if User.query.filter_by(username=username).first():
             flash("Username already exists", "warning")
             return redirect(url_for("register"))
@@ -142,8 +141,8 @@ def edit_collector(id):
         return redirect(url_for("login"))
     collector = Collector.query.get_or_404(id)
     if request.method == 'POST':
-        collector.name = request.form['name']
-        collector.whatsapp = request.form['whatsapp']
+        collector.name = request.form.get('name')
+        collector.whatsapp = request.form.get('whatsapp')
         db.session.commit()
         return redirect(url_for('home'))
     return render_template('edit_collector.html', collector=collector)
