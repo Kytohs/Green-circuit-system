@@ -63,7 +63,7 @@ class User(db.Model):
 # ============================
 # Auth Routes
 # ============================
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "POST":
         username = request.form["username"]
@@ -76,6 +76,8 @@ def login():
         else:
             flash("Invalid username or password", "danger")
     return render_template("login.html")
+print(request.form)
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
