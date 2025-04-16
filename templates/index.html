@@ -1,156 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bin Status Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bin Dashboard</title>
 
-    <!-- Styles and Scripts -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet & Chart.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <style>
-        :root {
-            --bg-color: #121212;
-            --text-color: white;
-            --button-bg: #007BFF;
-            --button-text: white;
-        }
+  <style>
+    :root {
+      --bg-color: #121212;
+      --text-color: white;
+      --button-bg: #007BFF;
+      --button-text: white;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: 0.3s ease;
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: Arial, sans-serif;
+      transition: 0.3s ease;
+    }
 
-        #map { height: 400px; width: 100%; margin-bottom: 20px; }
-        .container { text-align: center; }
-        button {
-            background: var(--button-bg);
-            color: var(--button-text);
-            padding: 10px;
-            border: none;
-            cursor: pointer;
-            margin: 10px;
-        }
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
 
-        .light-mode {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-        }
+    #map {
+      height: 400px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
 
-        /* Hide chart section initially */
-        #chartSection {
-            display: none;
-            margin-top: 20px;
-        }
-    </style>
+    button {
+      background: var(--button-bg);
+      color: var(--button-text);
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      margin: 5px;
+      width: 250px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .light-mode {
+      --bg-color: #ffffff;
+      --text-color: #000000;
+    }
+
+    #chartSection {
+      display: none;
+      margin-top: 20px;
+    }
+
+    h3, h4 {
+      margin-top: 30px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Bin Status Dashboard</h1>
-        <button id="toggleDarkModeBtn">Toggle Dark Mode</button>
-        <button id="refreshDataBtn">Refresh Data</button>
-        <button id="toggleChartsBtn">View Charts</button>
+  <div class="container">
+    <h1>🟢🔁 Green Circuit Dashboard</h1>
+    <p><i class="fas fa-circle" style="color: limegreen;"></i> Circuit Active</p>
 
-        <!-- Map container -->
-        <div id="map"></div>
+    <!-- Top Buttons -->
+    <button id="toggleDarkModeBtn">🌓 Toggle Theme</button>
+    <button id="refreshDataBtn">🔄 Refresh Data</button>
+    <button id="toggleChartsBtn">📊 View Charts</button>
+    <button onclick="document.getElementById('collectorForm').style.display='block'">👤 Register Collector</button>
+    <button onclick="notifyAllCollectors()">📢 Notify All Collectors</button>
 
-        <!-- Chart Section (Initially Hidden) -->
-        <div id="chartSection">
-            <canvas id="binChart"></canvas>
-        </div>
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Chart -->
+    <div id="chartSection">
+      <canvas id="binChart"></canvas>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            console.log("✅ DOM fully loaded");
+    <!-- Collector Form -->
+    <div id="collectorForm" style="display:none; margin-top: 20px;">
+      <h3>Register Collector</h3>
+      <form id="collector-form">
+        <input type="text" name="name" placeholder="Collector Name" required /><br />
+        <input type="text" name="whatsapp" placeholder="+2547XXXXXXXX" required /><br />
+        <button type="submit">✅ Register</button>
+        <button type="button" onclick="document.getElementById('collectorForm').style.display='none'">❌ Cancel</button>
+      </form>
 
-            // ✅ Initialize Leaflet Map
-            var map = L.map("map").setView([51.505, -0.09], 13);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-            L.marker([51.505, -0.09]).addTo(map)
-                .bindPopup("A sample location.")
-                .openPopup();
-            console.log("✅ Leaflet map initialized!");
+      <div style="margin-top: 20px;">
+        <h4>✅ Registered Collectors</h4>
+        <ul>
+          
+        </ul>
+      </div>
+    </div>
 
-            // ✅ Initialize Chart.js
-            let binChart = null;
-            function initializeChart() {
-                var ctx = document.getElementById("binChart");
-                if (!ctx) {
-                    console.error("❌ Error: Chart canvas not found!");
-                    return;
-                }
+    <!-- Notification Log -->
+    <div id="notificationLog" style="margin-top: 30px;">
+      <h3>🧾 Notification History</h3>
+      <ul id="logList"></ul>
+    </div>
+  </div>
 
-                ctx = ctx.getContext("2d");
-                if (binChart) binChart.destroy(); // Destroy previous chart if exists
+  <!-- JavaScript -->
+  <script>
+    // Dark mode toggle
+    document.getElementById("toggleDarkModeBtn").addEventListener("click", () => {
+      document.body.classList.toggle("light-mode");
+      const mode = document.body.classList.contains("light-mode") ? "light" : "dark";
+      localStorage.setItem("theme", mode);
+    });
 
-                binChart = new Chart(ctx, {
-                    type: "bar",
-                    data: {
-                        labels: ["Bin 1", "Bin 2", "Bin 3", "Bin 4"],
-                        datasets: [{
-                            label: "Bin Fill Level (%)",
-                            data: [20, 50, 80, 100],
-                            backgroundColor: ["green", "yellow", "orange", "red"]
-                        }]
-                    },
-                    options: { responsive: true }
-                });
-            }
+    if (localStorage.getItem("theme") === "light") {
+      document.body.classList.add("light-mode");
+    }
 
-            // ✅ Toggle Chart Visibility
-            document.getElementById("toggleChartsBtn").addEventListener("click", function () {
-                var chartSection = document.getElementById("chartSection");
-                if (chartSection.style.display === "none" || chartSection.style.display === "") {
-                    chartSection.style.display = "block";
-                    initializeChart();
-                    this.textContent = "Hide Charts";
-                } else {
-                    chartSection.style.display = "none";
-                    this.textContent = "View Charts";
-                }
-            });
+    // Map
+    const map = L.map("map").setView([0.0236, 37.9062], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-            // ✅ Toggle Dark Mode
-            document.getElementById("toggleDarkModeBtn").addEventListener("click", function () {
-                document.body.classList.toggle("light-mode");
-                let mode = document.body.classList.contains("light-mode") ? "light" : "dark";
-                localStorage.setItem("theme", mode);
-                console.log("✅ Dark mode toggled:", mode);
-            });
+    // Chart
+    let binChart = null;
+    function initializeChart() {
+      const ctx = document.getElementById("binChart").getContext("2d");
+      if (binChart) binChart.destroy();
+      binChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Bin 1", "Bin 2", "Bin 3", "Bin 4"],
+          datasets: [{
+            label: "Bin Fill Level (%)",
+            data: [20, 50, 80, 100],
+            backgroundColor: ["green", "yellow", "orange", "red"]
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
 
-            // ✅ Apply Saved Theme on Load
-            if (localStorage.getItem("theme") === "light") {
-                document.body.classList.add("light-mode");
-            }
+    // Chart toggle
+    document.getElementById("toggleChartsBtn").addEventListener("click", function () {
+      const section = document.getElementById("chartSection");
+      section.style.display = section.style.display === "none" ? "block" : "none";
+      this.textContent = section.style.display === "block" ? "❌ Hide Charts" : "📊 View Charts";
+      if (section.style.display === "block") initializeChart();
+    });
 
-            // ✅ Simulated Data Fetch
-            document.getElementById("refreshDataBtn").addEventListener("click", function () {
-                console.log("Fetching bin data...");
-                setTimeout(() => {
-                    let bins = [
-                        { bin_id: "Bin 1", weight: 30 },
-                        { bin_id: "Bin 2", weight: 60 },
-                        { bin_id: "Bin 3", weight: 90 },
-                        { bin_id: "Bin 4", weight: 100 }
-                    ];
-                    updateChart(bins);
-                }, 1000);
-            });
+    // Refresh simulation
+    document.getElementById("refreshDataBtn").addEventListener("click", () => {
+      alert("✅ Data refreshed (simulation)");
+    });
 
-            // ✅ Update Chart with New Data
-            function updateChart(bins) {
-                if (!binChart) initializeChart();
-                binChart.data.labels = bins.map(bin => bin.bin_id);
-                binChart.data.datasets[0].data = bins.map(bin => bin.weight);
-                binChart.update();
-            }
-        });
-    </script>
+    // Collector registration
+    document.getElementById("collector-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = new URLSearchParams(formData);
+      const res = await fetch("/register-collector", {
+        method: "POST",
+        body: data
+      });
+      if (res.ok) {
+        alert("✅ Collector Registered!");
+        window.location.reload();
+      } else {
+        alert("❌ Failed to register collector.");
+      }
+    });
+
+    // Notify all collectors
+    async function notifyAllCollectors() {
+      const msg = prompt("Enter your message to send to all collectors:");
+      if (!msg) return;
+      const res = await fetch("/notify-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+      });
+      const result = await res.json();
+      alert(result.message || result.error);
+      loadNotificationLogs();
+    }
+
+    // Load Notification Logs
+    async function loadNotificationLogs() {
+      const res = await fetch("/logs");
+      const data = await res.json();
+      const list = document.getElementById("logList");
+      list.innerHTML = "";
+
+      if (data.logs.length === 0) {
+        list.innerHTML = "<li>No notifications sent yet.</li>";
+        return;
+      }
+
+      data.logs.forEach(log => {
+        const li = document.createElement("li");
+        li.textContent = `${log.timestamp} → ${log.collector}: ${log.message}`;
+        list.appendChild(li);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadNotificationLogs);
+  </script>
 </body>
 </html>

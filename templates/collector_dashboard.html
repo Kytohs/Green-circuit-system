@@ -48,13 +48,13 @@
             </tr>
         </thead>
         <tbody>
-            {% for bin in bins %}
+            
             <tr>
                 <td>{{ bin.bin_id }}</td>
                 <td>{{ bin.location }}</td>
                 <td>{{ bin.status }}</td>
             </tr>
-            {% endfor %}
+           
         </tbody>
     </table>
 
@@ -77,7 +77,9 @@
             <thead>
                 <tr>
                     <th>Bin ID</th>
-                    <th>Location</th>
+                    <th>Location<td>
+                       
+                    </th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -85,7 +87,7 @@
             <tbody>
                 {% for bin in bins %}
                 <tr>
-                    <td>{{ bin.bin_id }}</td>
+                    {{ bin.bin_id }}</td>
                     <td>{{ bin.location }}</td>
                     <td>{{ bin.status }}</td>
                     <td>
@@ -100,3 +102,4 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<input type="text" id="collectorSearch" placeholder="🔍 Search collector..." style="margin: 10px 0; padding: 8px; width: 250px;">

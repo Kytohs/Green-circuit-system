@@ -17,6 +17,13 @@
     <a href="/download_report?format=csv">Download CSV</a>
 <a href="/download_report?format=pdf">Download PDF</a>
 
+<h2>Registered Collectors</h2>
+<ul>
+    {% for collector in collectors %}
+        <li>{{ collector.name }} - {{ collector.whatsapp }}</li>
+    {% endfor %}
+</ul>
+
 </head>
 <body>
     <h1>Bin Status Dashboard</h1>
