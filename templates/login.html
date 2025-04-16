@@ -1,22 +1,45 @@
-<!-- templates/login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        .flash {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .flash.success { background-color: #d4edda; color: #155724; }
+        .flash.danger { background-color: #f8d7da; color: #721c24; }
+        .flash.warning { background-color: #fff3cd; color: #856404; }
+        .flash.info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
 </head>
 <body>
     <h1>Login</h1>
-    <form method="POST">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}">
         <label for="username">Username:</label>
         <input type="text" name="username" id="username" required>
-        <br>
+        <br><br>
         <label for="password">Password:</label>
         <input type="password" name="password" id="password" required>
-        <br>
+        <br><br>
         <button type="submit">Login</button>
-        <form action="/login" method="POST">
-
     </form>
+
+    <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.</p>
 </body>
 </html>
