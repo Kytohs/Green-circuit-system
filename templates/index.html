@@ -3,225 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bin Dashboard</title>
+  <title>Green Circuit Dashboard</title>
 
-  <!-- Leaflet & Chart.js -->
+  <!-- Bootstrap, Leaflet & Chart.js -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg-color: #121212;
-      --text-color: white;
-      --button-bg: #007BFF;
-      --button-text: white;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: Arial, sans-serif;
-      transition: 0.3s ease;
-    }
-
-    .container {
-      text-align: center;
-      padding: 20px;
-    }
-
-    #map {
-      height: 400px;
-      width: 100%;
-      margin-bottom: 20px;
-    }
-
-    button {
-      background: var(--button-bg);
-      color: var(--button-text);
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      margin: 5px;
-      cursor: pointer;
-    }
-
-    input[type="text"] {
-      padding: 8px;
-      margin: 5px;
-      width: 250px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    .light-mode {
-      --bg-color: #ffffff;
-      --text-color: #000000;
-    }
-
-    #chartSection {
-      display: none;
-      margin-top: 20px;
-    }
-
-    h3, h4 {
-      margin-top: 30px;
-    }
-  </style>
 </head>
-<body>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container">
-    <h1>🟢🔁 Green Circuit Dashboard</h1>
-    <p><i class="fas fa-circle" style="color: limegreen;"></i> Circuit Active</p>
-
-    <!-- Top Buttons -->
-    <button id="toggleDarkModeBtn">🌓 Toggle Theme</button>
-    <button id="refreshDataBtn">🔄 Refresh Data</button>
-    <button id="toggleChartsBtn">📊 View Charts</button>
-    <button onclick="document.getElementById('collectorForm').style.display='block'">👤 Register Collector</button>
-    <button onclick="notifyAllCollectors()">📢 Notify All Collectors</button>
-
-    <!-- Map -->
-    <div id="map"></div>
-
-    <!-- Chart -->
-    <div id="chartSection">
-      <canvas id="binChart"></canvas>
+    <a class="navbar-brand">🟢 Green Circuit</a>
+    <div class="d-flex">
+      <a href="{{ url_for('logout') }}" class="btn btn-outline-light">🚪 Logout</a>
     </div>
+  </div>
+</nav>
 
-    <!-- Collector Form -->
-    <div id="collectorForm" style="display:none; margin-top: 20px;">
-      <h3>Register Collector</h3>
-      <form id="collector-form">
-        <input type="text" name="name" placeholder="Collector Name" required /><br />
-        <input type="text" name="whatsapp" placeholder="+2547XXXXXXXX" required /><br />
-        <button type="submit">✅ Register</button>
-        <button type="button" onclick="document.getElementById('collectorForm').style.display='none'">❌ Cancel</button>
-      </form>
+<div class="container">
+  <div class="text-center mb-4">
+    <h1>Smart Bin Monitoring</h1>
+    <p class="text-muted"><i class="fas fa-circle text-success"></i> System Active</p>
 
-      <div style="margin-top: 20px;">
-        <h4>✅ Registered Collectors</h4>
-        <ul>
-          
-        </ul>
-      </div>
-    </div>
-
-    <!-- Notification Log -->
-    <div id="notificationLog" style="margin-top: 30px;">
-      <h3>🧾 Notification History</h3>
-      <ul id="logList"></ul>
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+      <button id="toggleDarkModeBtn" class="btn btn-secondary">🌓 Toggle Theme</button>
+      <button id="refreshDataBtn" class="btn btn-primary">🔄 Refresh</button>
+      <button id="toggleChartsBtn" class="btn btn-info">📊 View Charts</button>
+      <button class="btn btn-success" onclick="document.getElementById('collectorForm').style.display='block'">👤 Register Collector</button>
+      <button class="btn btn-warning" onclick="notifyAllCollectors()">📢 Notify All</button>
     </div>
   </div>
 
-  <!-- JavaScript -->
-  <script>
-    // Dark mode toggle
-    document.getElementById("toggleDarkModeBtn").addEventListener("click", () => {
-      document.body.classList.toggle("light-mode");
-      const mode = document.body.classList.contains("light-mode") ? "light" : "dark";
-      localStorage.setItem("theme", mode);
+  <div id="map" style="height: 400px;" class="mb-4"></div>
+
+  <!-- Chart -->
+  <div id="chartSection" class="mb-5" style="display: none;">
+    <canvas id="binChart"></canvas>
+  </div>
+
+  <!-- Register Collector -->
+  <div id="collectorForm" style="display:none;" class="mb-5">
+    <h3>Register Collector</h3>
+    <form id="collector-form" class="mb-3">
+      <input type="text" name="name" class="form-control mb-2" placeholder="Collector Name" required />
+      <input type="text" name="whatsapp" class="form-control mb-2" placeholder="+2547XXXXXXXX" required />
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success">✅ Register</button>
+        <button type="button" class="btn btn-danger" onclick="document.getElementById('collectorForm').style.display='none'">❌ Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Notification Log -->
+  <div>
+    <h3>📄 Notification Log</h3>
+    <ul id="logList" class="list-group"></ul>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.getElementById("toggleDarkModeBtn").addEventListener("click", () => {
+    document.body.classList.toggle("bg-dark");
+    document.body.classList.toggle("text-white");
+    localStorage.setItem("theme", document.body.classList.contains("bg-dark") ? "dark" : "light");
+  });
+
+  if (localStorage.getItem("theme") === "dark") {
+    document.body.classList.add("bg-dark", "text-white");
+  }
+
+  const map = L.map("map").setView([0.0236, 37.9062], 6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Refresh dummy
+  document.getElementById("refreshDataBtn").addEventListener("click", () => alert("✅ Refreshed (simulated)"));
+
+  // Chart
+  let binChart = null;
+  function initializeChart() {
+    const ctx = document.getElementById("binChart").getContext("2d");
+    if (binChart) binChart.destroy();
+    binChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Bin 1", "Bin 2", "Bin 3", "Bin 4"],
+        datasets: [{
+          label: "Fill Level (%)",
+          data: [20, 50, 75, 90],
+          backgroundColor: ["green", "yellow", "orange", "red"]
+        }]
+      },
+      options: { responsive: true }
     });
+  }
 
-    if (localStorage.getItem("theme") === "light") {
-      document.body.classList.add("light-mode");
-    }
+  document.getElementById("toggleChartsBtn").addEventListener("click", () => {
+    const section = document.getElementById("chartSection");
+    section.style.display = section.style.display === "none" ? "block" : "none";
+    initializeChart();
+  });
 
-    // Map
-    const map = L.map("map").setView([0.0236, 37.9062], 6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // Chart
-    let binChart = null;
-    function initializeChart() {
-      const ctx = document.getElementById("binChart").getContext("2d");
-      if (binChart) binChart.destroy();
-      binChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: ["Bin 1", "Bin 2", "Bin 3", "Bin 4"],
-          datasets: [{
-            label: "Bin Fill Level (%)",
-            data: [20, 50, 80, 100],
-            backgroundColor: ["green", "yellow", "orange", "red"]
-          }]
-        },
-        options: { responsive: true }
-      });
-    }
-
-    // Chart toggle
-    document.getElementById("toggleChartsBtn").addEventListener("click", function () {
-      const section = document.getElementById("chartSection");
-      section.style.display = section.style.display === "none" ? "block" : "none";
-      this.textContent = section.style.display === "block" ? "❌ Hide Charts" : "📊 View Charts";
-      if (section.style.display === "block") initializeChart();
+  document.getElementById("collector-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = new URLSearchParams(formData);
+    const res = await fetch("/register-collector", {
+      method: "POST",
+      body: data
     });
+    alert(res.ok ? "✅ Collector Registered!" : "❌ Registration Failed");
+    if (res.ok) location.reload();
+  });
 
-    // Refresh simulation
-    document.getElementById("refreshDataBtn").addEventListener("click", () => {
-      alert("✅ Data refreshed (simulation)");
+  async function notifyAllCollectors() {
+    const msg = prompt("Enter message for all collectors:");
+    if (!msg) return;
+    const res = await fetch("/notify-all", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
     });
+    const result = await res.json();
+    alert(result.message || result.error);
+    loadNotificationLogs();
+  }
 
-    // Collector registration
-    document.getElementById("collector-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = new URLSearchParams(formData);
-      const res = await fetch("/register-collector", {
-        method: "POST",
-        body: data
-      });
-      if (res.ok) {
-        alert("✅ Collector Registered!");
-        window.location.reload();
-      } else {
-        alert("❌ Failed to register collector.");
-      }
+  async function loadNotificationLogs() {
+    const res = await fetch("/logs");
+    const data = await res.json();
+    const list = document.getElementById("logList");
+    list.innerHTML = "";
+    if (data.logs.length === 0) {
+      list.innerHTML = "<li class='list-group-item'>No notifications yet.</li>";
+      return;
+    }
+    data.logs.forEach(log => {
+      const li = document.createElement("li");
+      li.classList.add("list-group-item");
+      li.textContent = `${log.timestamp} → ${log.collector}: ${log.message}`;
+      list.appendChild(li);
     });
+  }
 
-    // Notify all collectors
-    async function notifyAllCollectors() {
-      const msg = prompt("Enter your message to send to all collectors:");
-      if (!msg) return;
-      const res = await fetch("/notify-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg })
-      });
-      const result = await res.json();
-      alert(result.message || result.error);
-      loadNotificationLogs();
-    }
-
-    // Load Notification Logs
-    async function loadNotificationLogs() {
-      const res = await fetch("/logs");
-      const data = await res.json();
-      const list = document.getElementById("logList");
-      list.innerHTML = "";
-
-      if (data.logs.length === 0) {
-        list.innerHTML = "<li>No notifications sent yet.</li>";
-        return;
-      }
-
-      data.logs.forEach(log => {
-        const li = document.createElement("li");
-        li.textContent = `${log.timestamp} → ${log.collector}: ${log.message}`;
-        list.appendChild(li);
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", loadNotificationLogs);
-  </script>
+  document.addEventListener("DOMContentLoaded", loadNotificationLogs);
+</script>
 </body>
 </html>
