@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from twilio.rest import Client
 from dotenv import load_dotenv
 from waitress import serve
+from functools import wraps
 import traceback
 import os
 from datetime import datetime
@@ -17,7 +18,7 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-# Flask App Setup
+# Flask Setup
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
@@ -53,6 +54,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -61,9 +63,28 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
 # ============================
-# Auth Routes
+# Helpers
 # ============================
-@app.route('/login', methods=['GET', 'POST'])
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = User.query.get(session.get("user_id"))
+        if not user or not user.is_admin:
+            flash("Admin access only!", "danger")
+            return redirect(url_for("home"))
+        return f(*args, **kwargs)
+    return decorated
+
+# ============================
+# Routes
+# ============================
+@app.route("/")
+def home():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return render_template("index.html")
+
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form.get("username")
@@ -76,7 +97,6 @@ def login():
         else:
             flash("Invalid username or password", "danger")
     return render_template("login.html")
-
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -101,22 +121,38 @@ def logout():
     return redirect(url_for("login"))
 
 # ============================
-# Protected Dashboard Route
+# Admin Collector Routes
 # ============================
-@app.route("/")
-def home():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+@app.route("/admin/collectors")
+@admin_required
+def admin_collectors():
     collectors = Collector.query.all()
-    return render_template("index.html", collectors=collectors)
+    return render_template("admin_collectors.html", collectors=collectors)
 
-# ============================
-# Collector Management
-# ============================
+@app.route("/edit-collector/<int:id>", methods=["GET", "POST"])
+@admin_required
+def edit_collector(id):
+    collector = Collector.query.get_or_404(id)
+    if request.method == 'POST':
+        collector.name = request.form.get('name')
+        collector.whatsapp = request.form.get('whatsapp')
+        db.session.commit()
+        flash("Collector updated!", "success")
+        return redirect(url_for('admin_collectors'))
+    return render_template('edit_collector.html', collector=collector)
+
+@app.route("/delete-collector/<int:id>", methods=["POST"])
+@admin_required
+def delete_collector(id):
+    collector = Collector.query.get_or_404(id)
+    db.session.delete(collector)
+    db.session.commit()
+    flash("Collector deleted.", "info")
+    return redirect(url_for('admin_collectors'))
+
 @app.route("/register-collector", methods=["GET", "POST"])
+@admin_required
 def register_collector():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
     if request.method == "POST":
         name = request.form.get("name")
         whatsapp = request.form.get("whatsapp")
@@ -128,36 +164,15 @@ def register_collector():
             db.session.add(new_collector)
             db.session.commit()
             flash("Collector registered successfully!", "success")
-            return redirect(url_for("home"))
+            return redirect(url_for("admin_collectors"))
         except Exception as e:
             db.session.rollback()
             flash(f"Error: {e}", "danger")
             return redirect(url_for("register_collector"))
     return render_template("register_collector.html")
 
-@app.route("/edit-collector/<int:id>", methods=["GET", "POST"])
-def edit_collector(id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    collector = Collector.query.get_or_404(id)
-    if request.method == 'POST':
-        collector.name = request.form.get('name')
-        collector.whatsapp = request.form.get('whatsapp')
-        db.session.commit()
-        return redirect(url_for('home'))
-    return render_template('edit_collector.html', collector=collector)
-
-@app.route("/delete-collector/<int:id>", methods=["DELETE"])
-def delete_collector(id):
-    if "user_id" not in session:
-        return jsonify({"error": "Unauthorized"}), 403
-    collector = Collector.query.get_or_404(id)
-    db.session.delete(collector)
-    db.session.commit()
-    return jsonify({"message": "Collector deleted successfully"}), 200
-
 # ============================
-# API Endpoints
+# API + Notifications
 # ============================
 @app.route("/api/register-collector", methods=["POST"])
 def api_register_collector():
@@ -228,6 +243,7 @@ def update_bin():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/notify-all", methods=["POST"])
+@admin_required
 def notify_all_collectors():
     try:
         data = request.get_json()
@@ -248,6 +264,7 @@ def notify_all_collectors():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/logs")
+@admin_required
 def view_logs():
     logs = NotificationLog.query.order_by(NotificationLog.timestamp.desc()).limit(10).all()
     return jsonify({
