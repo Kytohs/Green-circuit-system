@@ -18,17 +18,14 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-# Flask Setup
+# Flask App Setup
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
-# ============================
-# Models
-# ============================
+# ============================ MODELS ============================
 class Bin(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     bin_id = db.Column(db.String, unique=True, nullable=False)
@@ -62,9 +59,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# ============================
-# Helpers
-# ============================
+# ============================ HELPERS ============================
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -75,9 +70,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ============================
-# Routes
-# ============================
+# ============================ ROUTES ============================
 @app.route("/")
 def home():
     if "user_id" not in session:
@@ -94,8 +87,7 @@ def login():
             session["user_id"] = user.id
             flash("Logged in successfully!", "success")
             return redirect(url_for("home"))
-        else:
-            flash("Invalid username or password", "danger")
+        flash("Invalid username or password", "danger")
     return render_template("login.html")
 
 @app.route("/register", methods=["GET", "POST"])
@@ -103,15 +95,22 @@ def register():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
+
         if User.query.filter_by(username=username).first():
             flash("Username already exists", "warning")
             return redirect(url_for("register"))
-        new_user = User(username=username)
+
+        if User.query.filter_by(is_admin=True).count() >= 3:
+            flash("Admin limit reached. Cannot register more admins.", "danger")
+            return redirect(url_for("register"))
+
+        new_user = User(username=username, is_admin=True)
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
-        flash("Registration successful. Please log in.", "success")
+        flash("Admin registered successfully. Please log in.", "success")
         return redirect(url_for("login"))
+
     return render_template("register.html")
 
 @app.route("/logout")
@@ -120,9 +119,6 @@ def logout():
     flash("Logged out.", "info")
     return redirect(url_for("login"))
 
-# ============================
-# Admin Collector Routes
-# ============================
 @app.route("/admin/collectors")
 @admin_required
 def admin_collectors():
@@ -150,45 +146,55 @@ def delete_collector(id):
     flash("Collector deleted.", "info")
     return redirect(url_for('admin_collectors'))
 
-@app.route("/register-collector", methods=["GET", "POST"])
+@app.route("/register-collector", methods=["POST"])
 @admin_required
 def register_collector():
-    if request.method == "POST":
-        name = request.form.get("name")
-        whatsapp = request.form.get("whatsapp")
-        if not name or not whatsapp:
-            flash("Name and WhatsApp number are required!", "danger")
-            return redirect(url_for("register_collector"))
-        try:
-            new_collector = Collector(name=name, whatsapp=whatsapp)
-            db.session.add(new_collector)
-            db.session.commit()
-            flash("Collector registered successfully!", "success")
-            return redirect(url_for("admin_collectors"))
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error: {e}", "danger")
-            return redirect(url_for("register_collector"))
-    return render_template("register_collector.html")
+    name = request.form.get("name")
+    whatsapp = request.form.get("whatsapp")
+    if not name or not whatsapp:
+        return jsonify({"error": "Missing fields"}), 400
+    new_collector = Collector(name=name, whatsapp=whatsapp)
+    db.session.add(new_collector)
+    db.session.commit()
+    return jsonify({"message": "Collector registered"}), 200
 
-# ============================
-# API + Notifications
-# ============================
-@app.route("/api/register-collector", methods=["POST"])
-def api_register_collector():
+@app.route("/notify-all", methods=["POST"])
+@admin_required
+def notify_all_collectors():
     try:
         data = request.get_json()
-        name = data.get("name")
-        whatsapp = data.get("whatsapp")
-        if not name or not whatsapp:
-            return jsonify({"error": "Name and WhatsApp number are required."}), 400
-        new_collector = Collector(name=name, whatsapp=whatsapp)
-        db.session.add(new_collector)
+        message = data.get("message")
+        if not message:
+            return jsonify({"error": "Message is required"}), 400
+
+        collectors = Collector.query.all()
+        for collector in collectors:
+            client.messages.create(
+                from_=TWILIO_WHATSAPP_NUMBER,
+                body=message,
+                to=f"whatsapp:{collector.whatsapp}"
+            )
+            db.session.add(NotificationLog(collector_id=collector.id, message=message))
+
         db.session.commit()
-        return jsonify({"message": "Collector registered successfully!"}), 200
+        return jsonify({"message": "Notifications sent"}), 200
     except Exception as e:
-        db.session.rollback()
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@app.route("/logs")
+@admin_required
+def view_logs():
+    logs = NotificationLog.query.order_by(NotificationLog.timestamp.desc()).limit(10).all()
+    return jsonify({
+        "logs": [
+            {
+                "collector": Collector.query.get(log.collector_id).name,
+                "message": log.message,
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            } for log in logs
+        ]
+    })
 
 @app.route("/get-bins", methods=["GET"])
 def get_bins():
@@ -215,6 +221,7 @@ def update_bin():
         if not bin_obj:
             bin_obj = Bin(bin_id=data["bin_id"])
             db.session.add(bin_obj)
+
         bin_obj.weight = data["weight"]
         bin_obj.location = data["location"]
         bin_obj.latitude = data["latitude"]
@@ -224,68 +231,29 @@ def update_bin():
 
         weight_val = float(bin_obj.weight.replace("kg", "").strip())
         if weight_val > 40:
-            message_body = (
-                f"🚨 Bin {bin_obj.bin_id} at {bin_obj.location} is full!\n"
-                f"📍 {bin_obj.latitude}, {bin_obj.longitude}"
-            )
+            message = f"🚨 Bin {bin_obj.bin_id} at {bin_obj.location} is full!\n📍 {bin_obj.latitude}, {bin_obj.longitude}"
             for collector in Collector.query.all():
                 client.messages.create(
                     from_=TWILIO_WHATSAPP_NUMBER,
-                    body=message_body,
+                    body=message,
                     to=f"whatsapp:{collector.whatsapp}"
                 )
-                db.session.add(NotificationLog(collector_id=collector.id, message=message_body))
+                db.session.add(NotificationLog(collector_id=collector.id, message=message))
             db.session.commit()
 
-        return jsonify({"message": "Bin updated successfully."}), 200
+        return jsonify({"message": "Bin updated"}), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
-@app.route("/notify-all", methods=["POST"])
-@admin_required
-def notify_all_collectors():
-    try:
-        data = request.get_json()
-        message_body = data.get("message")
-        if not message_body:
-            return jsonify({"error": "Message is required."}), 400
-        for collector in Collector.query.all():
-            client.messages.create(
-                from_=TWILIO_WHATSAPP_NUMBER,
-                body=message_body,
-                to=f"whatsapp:{collector.whatsapp}"
-            )
-            db.session.add(NotificationLog(collector_id=collector.id, message=message_body))
-        db.session.commit()
-        return jsonify({"message": "✅ Message sent to all collectors."}), 200
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/logs")
-@admin_required
-def view_logs():
-    logs = NotificationLog.query.order_by(NotificationLog.timestamp.desc()).limit(10).all()
-    return jsonify({
-        "logs": [
-            {
-                "collector": Collector.query.get(log.collector_id).name,
-                "message": log.message,
-                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            } for log in logs
-        ]
-    })
 
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
-# ============================
-# Init DB & Run
-# ============================
+# ============================ INIT DB ============================
 with app.app_context():
     db.create_all()
 
+# ============================ RUN ============================
 if __name__ == "__main__":
     serve(app, host="0.0.0.0", port=int(os.getenv("PORT", 5000)))

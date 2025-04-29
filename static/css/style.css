@@ -1,0 +1,73 @@
+/* General Neon Green Theme */
+body {
+    background-color: #0a0a0a;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Neon Heading Text */
+.neon-text {
+    color: #39ff14;
+    text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14, 0 0 20px #39ff14;
+}
+
+/* Neon Label Styling */
+.neon-label {
+    color: #b9ffcb;
+}
+
+/* Neon Input Fields */
+.neon-input {
+    background-color: transparent;
+    border: 1px solid #39ff14;
+    color: #39ff14;
+    transition: box-shadow 0.3s ease;
+}
+
+.neon-input:focus {
+    box-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14;
+    border-color: #39ff14;
+    background-color: rgba(57, 255, 20, 0.1);
+    color: white;
+}
+
+input::placeholder {
+    color: #aaffcc;
+}
+
+/* Neon Buttons */
+.btn-neon {
+    background-color: #39ff14;
+    color: #000;
+    border: none;
+    font-weight: bold;
+    transition: 0.3s ease;
+}
+
+.btn-neon:hover {
+    background-color: #2de900;
+    box-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14;
+}
+
+/* Glass Box Style */
+.glass-box {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(57, 255, 20, 0.2);
+    max-width: 400px;
+    width: 100%;
+    margin: auto;
+    padding: 2rem;
+}
+
+/* Password Toggle Icon */
+.password-toggle {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #39ff14;
+    cursor: pointer;
+}
